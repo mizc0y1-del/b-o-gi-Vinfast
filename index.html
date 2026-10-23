@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#123b67">
+<title>Báo giá bảo hiểm ô tô</title>
+<style>
+:root{--navy:#123b67;--blue:#1769aa;--bg:#f3f6fb;--text:#172b4d;--muted:#667085;--line:#dce4ef;--green:#087443}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:var(--text)}
+header{background:linear-gradient(120deg,#123b67,#1769aa);color:#fff;padding:24px 16px;text-align:center}
+header h1{font-size:22px;margin:0 0 6px;letter-spacing:.3px} header p{margin:0;font-size:13px;opacity:.9}
+main{max-width:760px;margin:22px auto;padding:0 14px 36px}
+.card{background:#fff;border:1px solid #e6ebf2;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 5px 18px #17365d0a}
+h2{font-size:17px;margin:0 0 16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}
+input,select{width:100%;min-width:0;padding:12px;border:1px solid #cfd8e5;border-radius:9px;background:#fff;font-size:15px;color:var(--text)}
+input:focus,select:focus{outline:2px solid #b9d9ff;border-color:var(--blue)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+button{border:0;border-radius:9px;padding:13px 14px;font-weight:700;font-size:15px;cursor:pointer}
+.primary{background:var(--blue);color:#fff} .secondary{background:#e8f5ee;color:var(--green)} .clear{background:#f2f4f7;color:#475467;margin-top:12px;width:100%;font-size:13px}
+.results{display:none;margin-top:18px;border-radius:12px;background:#f5f9ff;padding:16px;border:1px solid #dbeafe}
+.result-line{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid #e1eaf5;font-size:14px}
+.result-line:last-child{border-bottom:0} .result-line strong{text-align:right} .total{color:var(--blue);font-size:17px}
+.hint{font-size:12px;color:var(--muted);line-height:1.5;margin:12px 0 0}
+.history-item{padding:12px 0;border-bottom:1px solid #edf0f5;font-size:13px;line-height:1.6;white-space:pre-line}
+.history-item:last-child{border-bottom:0} .empty{font-size:13px;color:var(--muted)}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.card{padding:16px}header h1{font-size:20px}}
+</style>
+</head>
+<body>
+<header><h1>BÁO GIÁ BẢO HIỂM Ô TÔ</h1><p>Tính phí theo loại xe, hiệu xe và năm sản xuất</p></header>
+<main>
+<section class="card">
+<h2>Thông tin xe</h2>
+<div class="grid">
+  <div class="field"><label for="loaiXe">Loại xe</label><select id="loaiXe"></select></div>
+  <div class="field"><label for="hieuXe">Hiệu xe</label><select id="hieuXe"></select></div>
+  <div class="field"><label for="namXe">Năm sản xuất</label><select id="namXe"></select></div>
+  <div class="field"><label for="giaTri">Giá trị xe (triệu VNĐ)</label><input id="giaTri" type="number" min="1" step="any" placeholder="Ví dụ: 650"></div>
+  <div class="field"><label for="hoaHong">Hoa hồng (%)</label><input id="hoaHong" type="number" min="0" max="100" step="any" value="0"></div>
+</div>
+<div class="actions"><button class="primary" id="btnTinh">TÍNH PHÍ</button><button class="secondary" id="btnCopy">SAO CHÉP BÁO GIÁ</button></div>
+<div class="results" id="ketqua" aria-live="polite"></div>
+<p class="hint">Phí bảo hiểm được tính bằng giá trị xe × tỉ lệ phí trong bảng, sau đó áp dụng mức phí tối thiểu tương ứng. Giá trị xe nhập theo đơn vị triệu VNĐ.</p>
+</section>
+<section class="card">
+<h2>Lịch sử báo giá</h2>
+<div id="history"><p class="empty">Chưa có báo giá nào.</p></div>
+<button class="clear" id="btnClear">Xóa lịch sử</button>
+</section>
+</main>
+<script>
+const rates = [{"type":"Không KDVT","model":"VF 3/Minio Green /VF2","year":2026,"rate":0.0155,"minimum":4500000},{"type":"Không KDVT","model":"VF 3/Minio Green /VF2","year":2025,"rate":0.0165,"minimum":5000000},{"type":"Không KDVT","model":"VF 3/Minio Green /VF2","year":2024,"rate":0.0165,"minimum":5000000},{"type":"Không KDVT","model":"VF 3/Minio Green /VF2","year":2023,"rate":0.018,"minimum":5000000},{"type":"Không KDVT","model":"VF 3/Minio Green /VF2","year":2022,"rate":0.018,"minimum":5000000},{"type":"Không KDVT","model":"VF 5/Herio Green","year":2026,"rate":0.0145,"minimum":5500000},{"type":"Không KDVT","model":"VF 5/Herio Green","year":2025,"rate":0.016,"minimum":6000000},{"type":"Không KDVT","model":"VF 5/Herio Green","year":2024,"rate":0.016,"minimum":6000000},{"type":"Không KDVT","model":"VF 5/Herio Green","year":2023,"rate":0.0175,"minimum":6000000},{"type":"Không KDVT","model":"VF 5/Herio Green","year":2022,"rate":0.0175,"minimum":6000000},{"type":"Không KDVT","model":"VF E34","year":2026,"rate":0.0135,"minimum":6000000},{"type":"Không KDVT","model":"VF E34","year":2025,"rate":0.0145,"minimum":6000000},{"type":"Không KDVT","model":"VF E34","year":2024,"rate":0.0145,"minimum":6000000},{"type":"Không KDVT","model":"VF E34","year":2023,"rate":0.0155,"minimum":6000000},{"type":"Không KDVT","model":"VF E34","year":2022,"rate":0.0165,"minimum":6000000},{"type":"Không KDVT","model":"VF 6/Nerio Green","year":2026,"rate":0.0127,"minimum":6000000},{"type":"Không KDVT","model":"VF 6/Nerio Green","year":2025,"rate":0.0145,"minimum":6000000},{"type":"Không KDVT","model":"VF 6/Nerio Green","year":2024,"rate":0.0145,"minimum":6000000},{"type":"Không KDVT","model":"VF 6/Nerio Green","year":2023,"rate":0.0165,"minimum":6000000},{"type":"Không KDVT","model":"VF 6/Nerio Green","year":2022,"rate":0.0165,"minimum":6000000},{"type":"Không KDVT","model":"VF 7/Limo Green /MPV 7","year":2026,"rate":0.012,"minimum":6000000},{"type":"Không KDVT","model":"VF 7/Limo Green /MPV 7","year":2025,"rate":0.014,"minimum":6000000},{"type":"Không KDVT","model":"VF 7/Limo Green /MPV 7","year":2024,"rate":0.014,"minimum":6000000},{"type":"Không KDVT","model":"VF 7/Limo Green /MPV 7","year":2023,"rate":0.016,"minimum":6000000},{"type":"Không KDVT","model":"VF 7/Limo Green /MPV 7","year":2022,"rate":0.016,"minimum":6000000},{"type":"Không KDVT","model":"VF 8/VF9","year":2026,"rate":0.0099,"minimum":6000000},{"type":"Không KDVT","model":"VF 8/VF9","year":2025,"rate":0.0099,"minimum":6000000},{"type":"Không KDVT","model":"VF 8/VF9","year":2024,"rate":0.0109,"minimum":6000000},{"type":"Không KDVT","model":"VF 8/VF9","year":2023,"rate":0.0109,"minimum":6000000},{"type":"Không KDVT","model":"VF 8/VF9","year":2022,"rate":0.0119,"minimum":6000000},{"type":"KDVT","model":"VF 3/Minio Green/ VF 2","year":2026,"rate":0.0205,"minimum":5000000},{"type":"KDVT","model":"VF 3/Minio Green/ VF 2","year":2025,"rate":0.021,"minimum":5000000},{"type":"KDVT","model":"VF 3/Minio Green/ VF 2","year":2024,"rate":0.021,"minimum":5000000},{"type":"KDVT","model":"VF 5/Herio Green","year":2026,"rate":0.0175,"minimum":5500000},{"type":"KDVT","model":"VF 5/Herio Green","year":2025,"rate":0.0175,"minimum":6000000},{"type":"KDVT","model":"VF 5/Herio Green","year":2024,"rate":0.0185,"minimum":6000000},{"type":"KDVT","model":"VF E34","year":2026,"rate":0.017,"minimum":6000000},{"type":"KDVT","model":"VF E34","year":2025,"rate":0.017,"minimum":6000000},{"type":"KDVT","model":"VF E34","year":2024,"rate":0.018,"minimum":6000000},{"type":"KDVT","model":"VF 6/Nerio Green","year":2026,"rate":0.017,"minimum":6000000},{"type":"KDVT","model":"VF 6/Nerio Green","year":2025,"rate":0.017,"minimum":6000000},{"type":"KDVT","model":"VF 6/Nerio Green","year":2024,"rate":0.018,"minimum":6000000},{"type":"KDVT","model":"VF 7/Limo Green/MPV 7","year":2026,"rate":0.016,"minimum":6000000},{"type":"KDVT","model":"VF 7/Limo Green/MPV 7","year":2025,"rate":0.016,"minimum":6000000},{"type":"KDVT","model":"VF 7/Limo Green/MPV 7","year":2024,"rate":0.0168,"minimum":6000000},{"type":"KDVT","model":"VF 8/VF9","year":2026,"rate":0.0145,"minimum":6000000},{"type":"KDVT","model":"VF 8/VF9","year":2025,"rate":0.0145,"minimum":6000000},{"type":"KDVT","model":"VF 8/VF9","year":2024,"rate":0.0165,"minimum":6000000},{"type":"Bán tải/mini van","model":"VF Wild","year":2026,"rate":0.0099,"minimum":6000000},{"type":"Bán tải/mini van","model":"ECVAN","year":2026,"rate":0.0185,"minimum":5000000}];
+const $ = id => document.getElementById(id);
+const money = n => Math.round(n).toLocaleString('vi-VN') + ' đ';
+const number = n => Math.round(n).toLocaleString('vi-VN');
+let latestQuote = '';
+function unique(values) { return [...new Set(values)]; }
+function fillSelect(el, values, formatter = v => v) {
+  el.innerHTML = '';
+  values.forEach(v => { const opt=document.createElement('option'); opt.value=String(v); opt.textContent=formatter(v); el.appendChild(opt); });
+}
+function updateModels() {
+  const type=$('loaiXe').value;
+  const models=unique(rates.filter(r=>r.type===type).map(r=>r.model));
+  fillSelect($('hieuXe'),models);
+  updateYears();
+}
+function updateYears() {
+  const type=$('loaiXe').value, model=$('hieuXe').value;
+  const years=unique(rates.filter(r=>r.type===type && r.model===model).map(r=>r.year)).sort((a,b)=>b-a);
+  fillSelect($('namXe'),years);
+}
+function init() {
+  fillSelect($('loaiXe'),unique(rates.map(r=>r.type)));
+  updateModels();
+  $('loaiXe').addEventListener('change',updateModels);
+  $('hieuXe').addEventListener('change',updateYears);
+  $('btnTinh').addEventListener('click',calculate);
+  $('btnCopy').addEventListener('click',copyQuote);
+  $('btnClear').addEventListener('click',clearHistory);
+  renderHistory();
+}
+function calculate() {
+  const value=Number($('giaTri').value), commission=Number($('hoaHong').value);
+  if (!Number.isFinite(value) || value<=0) { alert('Vui lòng nhập giá trị xe lớn hơn 0.'); $('giaTri').focus(); return; }
+  if (!Number.isFinite(commission) || commission<0 || commission>100) { alert('Hoa hồng phải từ 0 đến 100%.'); $('hoaHong').focus(); return; }
+  const type=$('loaiXe').value, model=$('hieuXe').value, year=Number($('namXe').value);
+  const item=rates.find(r=>r.type===type && r.model===model && r.year===year);
+  if(!item) { alert('Không tìm thấy tỉ lệ phí phù hợp trong bảng.'); return; }
+  const rawFee=value*1000000*item.rate;
+  const fee=Math.max(rawFee,item.minimum);
+  const commissionMoney=(fee/1.1)*commission/100;
+  const net=fee-commissionMoney;
+  latestQuote=`Báo giá bảo hiểm ô tô
+Loại xe: ${type}
+Hiệu xe: ${model}
+Năm sản xuất: ${year}
+Giá trị xe: ${number(value)} triệu VNĐ
+Tỉ lệ phí: ${(item.rate*100).toLocaleString('vi-VN')}%
+Phí tối thiểu: ${money(item.minimum)}
+Phí bảo hiểm: ${money(fee)}
+Hoa hồng: ${money(commissionMoney)}
+Thu về: ${money(net)}`;
+  $('ketqua').style.display='block';
+  $('ketqua').innerHTML=`
+    <div class="result-line"><span>Tỉ lệ phí</span><strong>${(item.rate*100).toLocaleString('vi-VN')}%</strong></div>
+    <div class="result-line"><span>Phí tối thiểu</span><strong>${money(item.minimum)}</strong></div>
+    <div class="result-line"><span>Phí bảo hiểm</span><strong class="total">${money(fee)}</strong></div>
+    <div class="result-line"><span>Hoa hồng</span><strong>${money(commissionMoney)}</strong></div>
+    <div class="result-line"><span>Thu về</span><strong>${money(net)}</strong></div>`;
+  saveHistory(latestQuote);
+}
+async function copyQuote() {
+  if(!latestQuote) { alert('Vui lòng tính phí trước khi sao chép.'); return; }
+  try { await navigator.clipboard.writeText(latestQuote); alert('Đã sao chép báo giá.'); }
+  catch(e) { const ta=document.createElement('textarea'); ta.value=latestQuote; document.body.appendChild(ta); ta.select(); const ok=document.execCommand('copy'); ta.remove(); alert(ok?'Đã sao chép báo giá.':'Không sao chép được, vui lòng sao chép thủ công.'); }
+}
+function saveHistory(quote) {
+  try { const list=JSON.parse(localStorage.getItem('baoGiaHistory')||'[]'); list.unshift({quote, time:new Date().toLocaleString('vi-VN')}); localStorage.setItem('baoGiaHistory',JSON.stringify(list.slice(0,30))); renderHistory(); }
+  catch(e) { /* Ứng dụng vẫn tính phí được nếu trình duyệt chặn lưu lịch sử. */ }
+}
+function renderHistory() {
+  let list=[]; try { list=JSON.parse(localStorage.getItem('baoGiaHistory')||'[]'); } catch(e) {}
+  const host=$('history'); host.innerHTML='';
+  if(!list.length) { host.innerHTML='<p class="empty">Chưa có báo giá nào.</p>'; return; }
+  list.forEach(entry=>{ const div=document.createElement('div'); div.className='history-item'; const time=document.createElement('strong'); time.textContent=entry.time+'\n'; const content=document.createElement('div'); content.textContent=entry.quote; div.append(time,content); host.appendChild(div); });
+}
+function clearHistory() {
+  if(!confirm('Bạn có chắc muốn xóa toàn bộ lịch sử báo giá trên trình duyệt này?')) return;
+  localStorage.removeItem('baoGiaHistory'); renderHistory();
+}
+init();
+</script>
+</body>
+</html>
