@@ -105,6 +105,8 @@ Hoa hồng: ${money(commissionMoney)}
 Thu về: ${money(net)}`;
   $('ketqua').style.display='block';
   $('ketqua').innerHTML=`
+    <div class="result-line"><span>Tỉ lệ phí</span><strong>${(item.rate*100).toLocaleString('vi-VN')}%</strong></div>
+    <div class="result-line"><span>Phí tối thiểu</span><strong>${money(item.minimum)}</strong></div>
     <div class="result-line"><span>Phí bảo hiểm</span><strong class="total">${money(fee)}</strong></div>
     <div class="result-line"><span>Hoa hồng</span><strong>${money(commissionMoney)}</strong></div>
     <div class="result-line"><span>Thu về</span><strong>${money(net)}</strong></div>`;
